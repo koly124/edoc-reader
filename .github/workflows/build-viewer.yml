@@ -44,7 +44,14 @@ jobs:
         run: npm run build -w @file-reader/shared
 
       - name: Package viewer (${{ matrix.platform }})
+        if: matrix.platform != 'mac'
         run: npm run dist:${{ matrix.platform }} -w @file-reader/viewer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package viewer (mac)
+        if: matrix.platform == 'mac'
+        run: bash scripts/build-mac-ci.sh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

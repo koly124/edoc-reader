@@ -34,6 +34,8 @@ const linuxFormat = process.env.EDOC_LINUX_FORMAT ?? "appimage";
 const keep = new Set([
   `${productName}-${pkg.version}.exe`,
   `${productName}-${pkg.version}.dmg`,
+  `Edoc-Viewer-${pkg.version}.dmg`,
+  `Edoc-Viewer.dmg`,
   `${productName}-${pkg.version}.AppImage`,
   `${productName}-${pkg.version}.tar.gz`,
 ]);

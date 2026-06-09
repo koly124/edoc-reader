@@ -23,9 +23,8 @@ win:
 mac:
   target:
     - dmg
-  artifactName: ${productName}-${version}.${ext}
+  artifactName: Edoc-Viewer-${version}.${ext}
   category: public.app-category.productivity
-  identity: null
   gatekeeperAssess: false
   hardenedRuntime: false
 linux:

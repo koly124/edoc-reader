@@ -22,20 +22,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build shared package
-        run: npm run build -w @file-reader/shared
-
       - name: Build DMG
-        run: npm run dist:mac -w @file-reader/viewer
+        run: bash scripts/build-mac-ci.sh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: List release files
-        run: ls -la packages/viewer/release/
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
           name: Edoc-Viewer-macOS
-          path: packages/viewer/release/*.dmg
+          path: packages/viewer/release/Edoc-Viewer.dmg
           if-no-files-found: error
