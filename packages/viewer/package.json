@@ -6,12 +6,11 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc && node scripts/copy-renderer.js && node scripts/bundle-renderer.js",
-    "start": "npm run build -w @file-reader/server && npm run build && electron . 2>&1",
+    "start": "npm run build && electron . 2>&1",
     "open": "electron .",
     "dev": "npm run build && electron ."
   },
   "dependencies": {
-    "@file-reader/server": "*",
     "@file-reader/shared": "*",
     "pdfjs-dist": "^4.2.67"
   },

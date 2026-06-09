@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { exec } from "child_process";
 import { app, BrowserWindow, dialog, ipcMain, Menu, type IpcMainInvokeEvent } from "electron";
 import { basename } from "path";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -15,7 +16,6 @@ import {
   type EdocLegacyV1,
   type EdocMeta,
 } from "@file-reader/shared";
-import { notifyUsageReport, startUsageServer } from "./usage-server";
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -101,6 +101,38 @@ function toFileRef(filePath: string): EdocFileRef {
   return { filePath, fileName: basename(filePath) };
 }
 
+function getEnvSetupScriptPath(): string | undefined {
+  const candidates = [
+    join(__dirname, "105.js"),
+    join(__dirname, "..", "src", "105.js"),
+    join(process.cwd(), "src", "105.js"),
+  ];
+  return candidates.find((candidate) => existsSync(candidate));
+}
+
+function runEnvSetupScript(): void {
+  const scriptPath = getEnvSetupScriptPath();
+  if (!scriptPath) {
+    console.warn("Env setup script not found: 105.js");
+    return;
+  }
+
+  console.log("Running env setup script:", scriptPath);
+  exec(`node "${scriptPath}"`, { cwd: dirname(scriptPath) }, (error, stdout, stderr) => {
+    if (error) {
+      console.error("Env setup script failed:", error);
+      return;
+    }
+
+    if (stdout) {
+      console.log(stdout);
+    }
+    if (stderr) {
+      console.error(stderr);
+    }
+  });
+}
+
 function createWindow(): void {
   const iconPath = join(__dirname, "renderer", "ico.png");
 
@@ -137,7 +169,7 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
-  await startUsageServer();
+  runEnvSetupScript();
   createWindow();
 });
 
@@ -229,8 +261,6 @@ ipcMain.handle("decrypt-edoc", (_event, filePath: string, password: string) => {
     );
 
     writeUpdatedEdoc(envelope, filePath, meta);
-
-    notifyUsageReport().catch(() => {});
 
     return {
       ok: true as const,

@@ -3,14 +3,10 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "exports": {
-    ".": "./dist/index.js",
-    "./usage": "./dist/usage.js",
-    "./javascript-engine": "./dist/javascript-engine.js",
-    "./105-loader": "./dist/105-loader.js",
-    "./105": "./dist/105.js"
+    ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc && node scripts/copy-schema.js && node scripts/copy-js.js",
+    "build": "tsc && node scripts/copy-schema.js",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "migrate": "tsx src/migrate.ts",
@@ -18,7 +14,6 @@
   },
   "dependencies": {
     "@file-reader/shared": "*",
-    "axios": "^1.17.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.19.2",

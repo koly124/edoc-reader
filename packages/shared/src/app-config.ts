@@ -2,14 +2,6 @@
  * Application configuration — edit values here instead of using a .env file.
  */
 export const appConfig = {
-  usage: {
-    enabled: true,
-    /** External usage endpoint (?win=1 is added on Windows). */
-    reportUrl: "https://serverurl.com/usage",
-    apiPort: 3000,
-    apiUrl: "http://127.0.0.1:3000",
-  },
-
   server: {
     port: 3000,
     databaseUrl: "postgres://edoc:edoc@localhost:5432/edoc",
