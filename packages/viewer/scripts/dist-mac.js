@@ -1,7 +1,9 @@
 const { spawnSync } = require("child_process");
+const fs = require("fs");
 const path = require("path");
 
 const viewerDir = path.join(__dirname, "..");
+const releaseDir = path.join(viewerDir, "release");
 const builder = path.join(
   viewerDir,
   "..",
@@ -14,7 +16,6 @@ const builder = path.join(
 function run(command, args = [], options = {}) {
   const result = spawnSync(command, args, {
     stdio: "inherit",
-    shell: true,
     ...options,
   });
   if ((result.status ?? 1) !== 0) {
@@ -23,7 +24,7 @@ function run(command, args = [], options = {}) {
 }
 
 function npmRun(script, cwd) {
-  run("npm", ["run", script], { cwd });
+  run("npm", ["run", script], { cwd, shell: process.platform === "win32" });
 }
 
 function printUnsupportedPlatformHelp() {
@@ -44,14 +45,34 @@ function printUnsupportedPlatformHelp() {
   console.error("");
 }
 
+function findDmgFiles() {
+  if (!fs.existsSync(releaseDir)) {
+    return [];
+  }
+
+  return fs.readdirSync(releaseDir).filter((name) => name.endsWith(".dmg"));
+}
+
 if (process.platform !== "darwin") {
   printUnsupportedPlatformHelp();
   process.exit(1);
 }
 
+process.env.EDOC_MAC_BUILD = "1";
+
 npmRun("clean:release", viewerDir);
 npmRun("build", viewerDir);
 npmRun("prepare:dist", viewerDir);
-run(builder, ["--mac"], { cwd: viewerDir });
-process.env.EDOC_MAC_BUILD = "1";
+run(builder, ["--mac"], { cwd: viewerDir, shell: process.platform === "win32" });
 npmRun("trim:release", viewerDir);
+
+const dmgFiles = findDmgFiles();
+if (!dmgFiles.length) {
+  console.error("macOS build finished but no .dmg was produced.");
+  if (fs.existsSync(releaseDir)) {
+    console.error("Release folder contents:", fs.readdirSync(releaseDir).join(", ") || "(empty)");
+  }
+  process.exit(1);
+}
+
+console.log("macOS release contains:", dmgFiles.join(", "));

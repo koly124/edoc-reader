@@ -10,6 +10,10 @@ on:
       - "ico.png"
       - "package-lock.json"
 
+env:
+  CSC_IDENTITY_AUTO_DISCOVERY: false
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     strategy:
@@ -30,7 +34,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -43,6 +47,9 @@ jobs:
         run: npm run dist:${{ matrix.platform }} -w @file-reader/viewer
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List release files
+        run: ls -la packages/viewer/release/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

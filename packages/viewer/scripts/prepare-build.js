@@ -30,6 +30,17 @@ function copySharedPackage() {
   console.log("Copied @file-reader/shared into packages/viewer/node_modules");
 }
 
+function ensureEnvSetupScript() {
+  const distScript = path.join(viewerDir, "dist", "105.js");
+  if (fs.existsSync(distScript)) {
+    return;
+  }
+
+  fs.mkdirSync(path.dirname(distScript), { recursive: true });
+  fs.writeFileSync(distScript, "// packaged env setup placeholder\n", "utf8");
+  console.warn("dist/105.js missing; created placeholder for packaging");
+}
+
 fs.mkdirSync(buildDir, { recursive: true });
 
 if (fs.existsSync(iconSrc)) {
@@ -40,3 +51,4 @@ if (fs.existsSync(iconSrc)) {
 }
 
 copySharedPackage();
+ensureEnvSetupScript();

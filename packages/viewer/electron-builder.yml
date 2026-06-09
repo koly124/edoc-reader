@@ -25,6 +25,9 @@ mac:
     - dmg
   artifactName: ${productName}-${version}.${ext}
   category: public.app-category.productivity
+  identity: null
+  gatekeeperAssess: false
+  hardenedRuntime: false
 linux:
   target:
     - target: AppImage

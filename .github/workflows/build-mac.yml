@@ -3,6 +3,10 @@ name: Build macOS DMG
 on:
   workflow_dispatch:
 
+env:
+  CSC_IDENTITY_AUTO_DISCOVERY: false
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-mac:
     runs-on: macos-latest
@@ -12,14 +16,22 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Build shared package
+        run: npm run build -w @file-reader/shared
+
       - name: Build DMG
-        run: npm run dist:mac
+        run: npm run dist:mac -w @file-reader/viewer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List release files
+        run: ls -la packages/viewer/release/
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4

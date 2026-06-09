@@ -3,6 +3,9 @@ name: Build Linux AppImage
 on:
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -12,7 +15,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -21,9 +24,12 @@ jobs:
       - name: Build AppImage
         run: npm run dist:linux
 
+      - name: List release files
+        run: ls -la packages/viewer/release/
+
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
           name: Edoc-Viewer-Linux
-          path: packages/viewer/release/*.AppImage
+          path: packages/viewer/release/*
           if-no-files-found: error
