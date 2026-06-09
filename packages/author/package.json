@@ -1,0 +1,19 @@
+{
+  "name": "@file-reader/author",
+  "version": "1.0.0",
+  "bin": {
+    "edoc-author": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@file-reader/shared": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.5"
+  }
+}

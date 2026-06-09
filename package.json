@@ -1,0 +1,22 @@
+{
+  "name": "edoc-viewer",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @file-reader/shared && npm run build -w @file-reader/server && npm run build -w @file-reader/author && npm run build -w @file-reader/viewer",
+    "build:server": "npm run build -w @file-reader/server",
+    "server": "npm run dev -w @file-reader/server",
+    "server:start": "npm run start -w @file-reader/server",
+    "author": "node scripts/encrypt.js",
+    "encrypt": "node scripts/encrypt.js",
+    "viewer": "npm run start -w @file-reader/viewer",
+    "viewer:open": "npm run build -w @file-reader/viewer && electron packages/viewer ../../sample.edoc",
+    "sample:pdf": "node scripts/create-sample-pdf.js",
+    "demo": "node scripts/demo.js"
+  },
+  "dependencies": {
+    "require": "^2.4.20"
+  }
+}

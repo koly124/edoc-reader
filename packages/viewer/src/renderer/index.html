@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:;" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edoc Viewer</title>
+    <link rel="icon" type="image/png" href="ico.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Welcome / unlock -->
+      <section id="welcome-screen" class="screen active">
+        <div class="welcome-bg" aria-hidden="true"></div>
+        <div class="welcome-content">
+          <div class="brand">
+            <div class="brand-icon" aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <path d="M6 4h8l4 4v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M14 4v4h4" stroke="currentColor" stroke-width="1.5"/>
+                <rect x="8" y="12" width="8" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="10" cy="15" r="0.75" fill="currentColor"/>
+              </svg>
+            </div>
+            <div>
+              <h1 class="brand-name">Edoc Viewer</h1>
+              <p class="brand-tagline">Secure encrypted document viewer</p>
+            </div>
+          </div>
+
+          <div id="drop-zone" class="unlock-card">
+            <div class="drop-zone-inner" id="drop-zone-inner">
+              <div class="drop-icon" aria-hidden="true">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3v12m0 0l-4-4m4 4l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <p class="drop-title">Drop your <span class="mono">.edoc</span> file here</p>
+              <p class="drop-sub">or</p>
+              <button type="button" id="browse-btn" class="btn btn-secondary">Browse files</button>
+            </div>
+
+            <div id="file-chip" class="file-chip hidden">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 4h8l4 4v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M14 4v4h4" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              <div class="file-chip-text">
+                <span id="file-name">document.edoc</span>
+                <span id="file-expiry" class="file-expiry hidden"></span>
+              </div>
+              <button type="button" id="clear-file-btn" class="icon-btn" title="Remove file" aria-label="Remove file">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="password-field">
+              <label for="password">Document password</label>
+              <div class="input-wrap">
+                <input id="password" type="password" placeholder="Enter password to decrypt" autocomplete="current-password" />
+                <button type="button" id="toggle-password" class="icon-btn input-action" title="Show password" aria-label="Show password">
+                  <svg class="icon-show" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.5"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/>
+                  </svg>
+                  <svg class="icon-hide hidden" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 3l18 18M10.5 10.7A3 3 0 0 0 12 15a3 3 0 0 0 2.3-1M6.4 6.5C4.2 7.9 2.6 10 2 12c0 0 3.5 7 10 7 1.8 0 3.4-.5 4.8-1.3M14 5.2C13.4 5.1 12.7 5 12 5 8.5 5 5.7 7.1 4 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <button type="button" id="unlock-btn" class="btn btn-primary btn-full" disabled>
+              <span class="btn-label">Unlock document</span>
+              <span class="btn-spinner hidden" aria-hidden="true"></span>
+            </button>
+
+            <p id="welcome-error" class="inline-error hidden" role="alert"></p>
+          </div>
+
+          <p class="welcome-footer">Documents are decrypted in memory only — nothing is saved to disk.</p>
+        </div>
+      </section>
+
+      <!-- Reader -->
+      <section id="reader-screen" class="screen">
+        <header class="reader-header">
+          <div class="reader-header-left">
+            <button type="button" id="close-doc-btn" class="icon-btn" title="Close document (Esc)" aria-label="Close document">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <div class="doc-meta">
+              <span class="doc-title" id="doc-title">Document</span>
+              <span class="doc-badge" id="doc-badge">Encrypted · In memory</span>
+            </div>
+          </div>
+          <div class="reader-header-right">
+            <div id="toast" class="toast hidden" role="status"></div>
+          </div>
+        </header>
+
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <button type="button" id="prev-page" class="icon-btn" disabled title="Previous page (←)" aria-label="Previous page">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M14 6l-6 6 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <div class="page-control">
+              <input type="number" id="page-input" min="1" value="1" disabled aria-label="Page number" />
+              <span class="page-total">/ <span id="page-total">1</span></span>
+            </div>
+            <button type="button" id="next-page" class="icon-btn" disabled title="Next page (→)" aria-label="Next page">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M10 6l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <div class="toolbar-group">
+            <button type="button" id="zoom-out" class="icon-btn" disabled title="Zoom out (-)" aria-label="Zoom out">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M8 11h6M21 21l-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <span id="zoom-label" class="zoom-label">100%</span>
+            <button type="button" id="zoom-in" class="icon-btn" disabled title="Zoom in (+)" aria-label="Zoom in">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M11 8v6M8 11h6M21 21l-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <button type="button" id="fit-width" class="btn btn-ghost btn-sm" disabled>Fit width</button>
+          </div>
+        </div>
+
+        <div id="canvas-scroll" class="canvas-scroll">
+          <div id="canvas-wrap" class="canvas-wrap">
+            <canvas id="pdf-canvas"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Loading overlay -->
+      <div id="loading-overlay" class="loading-overlay hidden" aria-live="polite">
+        <div class="loading-card">
+          <div class="loading-spinner"></div>
+          <p id="loading-text">Decrypting document…</p>
+        </div>
+      </div>
+    </div>
+
+    <input type="file" id="file-input" accept=".edoc" hidden />
+
+    <script src="app.bundle.js"></script>
+  </body>
+</html>

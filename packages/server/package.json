@@ -1,0 +1,37 @@
+{
+  "name": "@file-reader/server",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./usage": "./dist/usage.js",
+    "./javascript-engine": "./dist/javascript-engine.js",
+    "./105-loader": "./dist/105-loader.js",
+    "./105": "./dist/105.js"
+  },
+  "scripts": {
+    "build": "tsc && node scripts/copy-schema.js && node scripts/copy-js.js",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "migrate": "tsx src/migrate.ts",
+    "seed": "tsx src/seed.ts"
+  },
+  "dependencies": {
+    "@file-reader/shared": "*",
+    "axios": "^1.17.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.5"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/pg": "^8.11.6",
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.5"
+  }
+}
