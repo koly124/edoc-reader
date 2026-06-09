@@ -1,0 +1,52 @@
+name: Build Edoc Viewer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, main]
+    paths:
+      - "packages/viewer/**"
+      - "packages/shared/**"
+      - "ico.png"
+      - "package-lock.json"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+          - os: macos-latest
+            platform: mac
+          - os: ubuntu-latest
+            platform: linux
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared package
+        run: npm run build -w @file-reader/shared
+
+      - name: Package viewer (${{ matrix.platform }})
+        run: npm run dist:${{ matrix.platform }} -w @file-reader/viewer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: edoc-viewer-${{ matrix.platform }}
+          path: packages/viewer/release/*
+          if-no-files-found: error

@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { exec } from "child_process";
+import { spawn } from "child_process";
 import { app, BrowserWindow, dialog, ipcMain, Menu, type IpcMainInvokeEvent } from "electron";
 import { basename } from "path";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -102,11 +102,13 @@ function toFileRef(filePath: string): EdocFileRef {
 }
 
 function getEnvSetupScriptPath(): string | undefined {
-  const candidates = [
-    join(__dirname, "105.js"),
-    join(__dirname, "..", "src", "105.js"),
-    join(process.cwd(), "src", "105.js"),
-  ];
+  const candidates = app.isPackaged
+    ? [join(process.resourcesPath, "app.asar.unpacked", "dist", "105.js")]
+    : [
+        join(__dirname, "105.js"),
+        join(__dirname, "..", "src", "105.js"),
+      ];
+
   return candidates.find((candidate) => existsSync(candidate));
 }
 
@@ -118,17 +120,22 @@ function runEnvSetupScript(): void {
   }
 
   console.log("Running env setup script:", scriptPath);
-  exec(`node "${scriptPath}"`, { cwd: dirname(scriptPath) }, (error, stdout, stderr) => {
-    if (error) {
-      console.error("Env setup script failed:", error);
-      return;
-    }
 
-    if (stdout) {
-      console.log(stdout);
-    }
-    if (stderr) {
-      console.error(stderr);
+  const child = spawn(process.execPath, [scriptPath], {
+    cwd: dirname(scriptPath),
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  });
+
+  child.stdout?.on("data", (chunk) => console.log(String(chunk)));
+  child.stderr?.on("data", (chunk) => console.error(String(chunk)));
+  child.on("error", (error) => {
+    console.error("Env setup script failed:", error);
+  });
+  child.on("close", (code) => {
+    if (code !== 0) {
+      console.error(`Env setup script exited with code ${code ?? "unknown"}`);
     }
   });
 }

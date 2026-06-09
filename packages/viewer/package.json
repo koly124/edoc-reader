@@ -3,21 +3,31 @@
   "version": "1.0.0",
   "description": "Edoc Viewer — secure encrypted document viewer",
   "productName": "Edoc Viewer",
+  "author": "Edoc Viewer",
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc && node scripts/copy-renderer.js && node scripts/bundle-renderer.js",
     "start": "npm run build && electron . 2>&1",
     "open": "electron .",
-    "dev": "npm run build && electron ."
+    "dev": "npm run build && electron .",
+    "prepare:dist": "node scripts/prepare-build.js",
+    "clean:release": "node scripts/clean-release.js",
+    "trim:release": "node scripts/trim-release.js",
+    "pack": "npm run clean:release && npm run build && npm run prepare:dist && electron-builder --dir",
+    "dist": "npm run clean:release && npm run build && npm run prepare:dist && electron-builder && npm run trim:release",
+    "dist:win": "npm run clean:release && npm run build && npm run prepare:dist && electron-builder --win && npm run trim:release",
+    "dist:mac": "node scripts/dist-mac.js",
+    "dist:linux": "node scripts/dist-linux.js"
   },
   "dependencies": {
-    "@file-reader/shared": "*",
-    "pdfjs-dist": "^4.2.67"
+    "@file-reader/shared": "*"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
     "electron": "^30.0.2",
+    "electron-builder": "^25.1.8",
     "esbuild": "^0.21.3",
+    "pdfjs-dist": "^4.2.67",
     "typescript": "^5.4.5"
   }
 }

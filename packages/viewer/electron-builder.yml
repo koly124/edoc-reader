@@ -1,0 +1,45 @@
+appId: com.edoc.viewer
+productName: Edoc Viewer
+copyright: Copyright © 2026
+electronVersion: 30.5.1
+npmRebuild: false
+buildDependenciesFromSource: false
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - package.json
+asarUnpack:
+  - dist/105.js
+  - dist/renderer/pdf.worker.mjs
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  signAndEditExecutable: false
+  artifactName: ${productName}-${version}.${ext}
+mac:
+  target:
+    - dmg
+  artifactName: ${productName}-${version}.${ext}
+  category: public.app-category.productivity
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  executableName: edoc-viewer
+  artifactName: ${productName}-${version}.${ext}
+  category: Office
+  maintainer: Edoc Viewer
+fileAssociations:
+  - ext: edoc
+    name: Encrypted Document
+    description: Edoc encrypted document
+    mimeType: application/x-edoc
+protocols:
+  - name: Edoc Document
+    schemes:
+      - edoc

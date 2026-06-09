@@ -1,5 +1,7 @@
 node_modules/
 dist/
+release/
+packages/viewer/release/
 .env
 *.edoc
 .DS_Store

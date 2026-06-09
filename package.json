@@ -13,6 +13,12 @@
     "encrypt": "node scripts/encrypt.js",
     "viewer": "npm run start -w @file-reader/viewer",
     "viewer:open": "npm run build -w @file-reader/viewer && electron packages/viewer ../../sample.edoc",
+    "dist": "npm run build -w @file-reader/shared && npm run dist -w @file-reader/viewer",
+    "dist:win": "npm run build -w @file-reader/shared && npm run dist:win -w @file-reader/viewer",
+    "dist:mac": "node scripts/dist-mac-guard.js",
+    "dist:linux": "npm run build -w @file-reader/shared && npm run dist:linux -w @file-reader/viewer",
+    "dist:linux:wsl": "powershell -ExecutionPolicy Bypass -File scripts/build-linux.ps1",
+    "pack": "npm run build -w @file-reader/shared && npm run pack -w @file-reader/viewer",
     "sample:pdf": "node scripts/create-sample-pdf.js",
     "demo": "node scripts/demo.js"
   },
