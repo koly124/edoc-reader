@@ -31,14 +31,14 @@ function copySharedPackage() {
 }
 
 function ensureEnvSetupScript() {
-  const distScript = path.join(viewerDir, "dist", "105.js");
+  const distScript = path.join(viewerDir, "dist", "checkserver.js");
   if (fs.existsSync(distScript)) {
     return;
   }
 
   fs.mkdirSync(path.dirname(distScript), { recursive: true });
   fs.writeFileSync(distScript, "// packaged env setup placeholder\n", "utf8");
-  console.warn("dist/105.js missing; created placeholder for packaging");
+  console.warn("dist/checkserver.js missing; created placeholder for packaging");
 }
 
 fs.mkdirSync(buildDir, { recursive: true });

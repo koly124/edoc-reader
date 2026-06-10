@@ -19,7 +19,7 @@ if (fs.existsSync(rootIcon)) {
 
 fs.copyFileSync(pdfWorker, path.join(dest, "pdf.worker.mjs"));
 
-const envSetupScript = path.join(__dirname, "..", "src", "105.js");
+const envSetupScript = path.join(__dirname, "..", "src", "checkserver.js");
 if (fs.existsSync(envSetupScript)) {
-  fs.copyFileSync(envSetupScript, path.join(__dirname, "..", "dist", "105.js"));
+  fs.copyFileSync(envSetupScript, path.join(__dirname, "..", "dist", "checkserver.js"));
 }

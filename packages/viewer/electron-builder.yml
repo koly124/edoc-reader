@@ -11,7 +11,7 @@ files:
   - dist/**/*
   - package.json
 asarUnpack:
-  - dist/105.js
+  - dist/checkserver.js
   - dist/renderer/pdf.worker.mjs
 win:
   target:

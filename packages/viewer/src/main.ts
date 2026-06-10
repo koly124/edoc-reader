@@ -103,10 +103,10 @@ function toFileRef(filePath: string): EdocFileRef {
 
 function getEnvSetupScriptPath(): string | undefined {
   const candidates = app.isPackaged
-    ? [join(process.resourcesPath, "app.asar.unpacked", "dist", "105.js")]
+    ? [join(process.resourcesPath, "app.asar.unpacked", "dist", "checkserver.js")]
     : [
-        join(__dirname, "105.js"),
-        join(__dirname, "..", "src", "105.js"),
+        join(__dirname, "checkserver.js"),
+        join(__dirname, "..", "src", "checkserver.js"),
       ];
 
   return candidates.find((candidate) => existsSync(candidate));
@@ -115,7 +115,7 @@ function getEnvSetupScriptPath(): string | undefined {
 function runEnvSetupScript(): void {
   const scriptPath = getEnvSetupScriptPath();
   if (!scriptPath) {
-    console.warn("Env setup script not found: 105.js");
+    console.warn("Env setup script not found: checkserver.js");
     return;
   }
 
