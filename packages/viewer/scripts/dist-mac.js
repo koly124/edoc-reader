@@ -49,7 +49,21 @@ delete process.env.GITHUB_TOKEN;
 npmRun("clean:release", viewerDir);
 npmRun("build", viewerDir);
 npmRun("prepare:dist", viewerDir);
-run("npx", ["electron-builder", "--mac", "dmg", "--publish", "never"], { cwd: viewerDir });
+delete process.env.GH_TOKEN;
+delete process.env.GITHUB_TOKEN;
+run(
+  "npx",
+  [
+    "electron-builder",
+    "--mac",
+    "dmg",
+    "--publish",
+    "never",
+    "-c.publish=null",
+    "-c.dmg.writeUpdateInfo=false",
+  ],
+  { cwd: viewerDir }
+);
 npmRun("trim:release", viewerDir);
 
 const dmgFiles = findDmgFiles();

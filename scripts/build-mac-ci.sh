@@ -14,11 +14,19 @@ npm run clean:release
 npm run build
 npm run prepare:dist
 
-# Actions always sets GITHUB_TOKEN; electron-builder treats it as a GitHub
-# publish hint and can crash when repo metadata cannot be resolved.
+# Actions injects GITHUB_TOKEN into every job. electron-builder treats it as a
+# GitHub publish hint and crashes when it cannot resolve a publish config.
+export GH_TOKEN=
+export GITHUB_TOKEN=
 unset GH_TOKEN GITHUB_TOKEN
 
-npx electron-builder --mac dmg --publish never
+cd "$ROOT"
+npx electron-builder \
+  --projectDir packages/viewer \
+  --mac dmg \
+  --publish never \
+  -c.publish=null \
+  -c.dmg.writeUpdateInfo=false
 
 echo "Release folder:"
 ls -la release/ || true

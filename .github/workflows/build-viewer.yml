@@ -50,6 +50,9 @@ jobs:
       - name: Package viewer (mac)
         if: matrix.platform == 'mac'
         run: bash scripts/build-mac-ci.sh
+        env:
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
 
       - name: List release files
         run: ls -la packages/viewer/release/
