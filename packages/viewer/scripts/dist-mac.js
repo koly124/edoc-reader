@@ -43,6 +43,8 @@ if (process.platform !== "darwin") {
 
 process.env.EDOC_MAC_BUILD = "1";
 process.env.CSC_IDENTITY_AUTO_DISCOVERY = "false";
+delete process.env.GH_TOKEN;
+delete process.env.GITHUB_TOKEN;
 
 npmRun("clean:release", viewerDir);
 npmRun("build", viewerDir);
