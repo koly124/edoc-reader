@@ -24,8 +24,6 @@ jobs:
 
       - name: Build DMG
         run: bash scripts/build-mac-ci.sh
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4

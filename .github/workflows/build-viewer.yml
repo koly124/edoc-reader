@@ -46,14 +46,10 @@ jobs:
       - name: Package viewer (${{ matrix.platform }})
         if: matrix.platform != 'mac'
         run: npm run dist:${{ matrix.platform }} -w @file-reader/viewer
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Package viewer (mac)
         if: matrix.platform == 'mac'
         run: bash scripts/build-mac-ci.sh
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: List release files
         run: ls -la packages/viewer/release/

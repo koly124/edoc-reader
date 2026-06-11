@@ -4,6 +4,9 @@ copyright: Copyright © 2026
 electronVersion: 30.5.1
 npmRebuild: false
 buildDependenciesFromSource: false
+# CI sets GH_TOKEN; without an explicit publish provider electron-builder still
+# tries to write update metadata and crashes on a null publish config.
+publish: null
 directories:
   output: release
   buildResources: build
