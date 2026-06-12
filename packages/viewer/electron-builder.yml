@@ -4,7 +4,8 @@ copyright: Copyright © 2026
 electronVersion: 30.5.1
 npmRebuild: false
 buildDependenciesFromSource: false
-# No publish configuration for CI builds
+# Disable auto-update metadata (CI injects GITHUB_TOKEN automatically).
+publish: null
 generateUpdatesFilesForAllChannels: false
 dmg:
   writeUpdateInfo: false
