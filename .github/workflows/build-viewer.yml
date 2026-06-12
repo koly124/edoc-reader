@@ -66,6 +66,7 @@ jobs:
           GITHUB_TOKEN: ""
 
       - name: List release files
+        shell: bash
         run: ls -la packages/viewer/release/
 
       - name: Upload artifacts
