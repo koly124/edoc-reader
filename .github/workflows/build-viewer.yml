@@ -44,8 +44,19 @@ jobs:
         run: npm run build -w @file-reader/shared
 
       - name: Package viewer (${{ matrix.platform }})
-        if: matrix.platform != 'mac'
-        run: npm run dist:${{ matrix.platform }} -w @file-reader/viewer
+        if: matrix.platform == 'win'
+        shell: pwsh
+        run: ./scripts/build-win-ci.ps1
+        env:
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+
+      - name: Package viewer (${{ matrix.platform }})
+        if: matrix.platform == 'linux'
+        run: npm run dist:linux -w @file-reader/viewer
+        env:
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
 
       - name: Package viewer (mac)
         if: matrix.platform == 'mac'

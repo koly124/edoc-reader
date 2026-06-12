@@ -19,6 +19,9 @@ npm run prepare:dist
 
 # GitHub Actions injects GITHUB_TOKEN into every job. electron-builder treats it
 # as a GitHub publish hint and crashes when it cannot resolve a publish config.
+# Do NOT pass -c.publish=null on the CLI: electron-builder parses that as the
+# string "null" (a fake provider), not a null value. publish: null in
+# electron-builder.yml is the correct way to disable publishing.
 export GH_TOKEN=
 export GITHUB_TOKEN=
 unset GH_TOKEN GITHUB_TOKEN
@@ -27,9 +30,7 @@ cd "$ROOT"
 npx electron-builder \
   --projectDir packages/viewer \
   --mac dmg \
-  --publish never \
-  -c.publish=null \
-  -c.dmg.writeUpdateInfo=false
+  --publish never
 
 echo "Release folder:"
 ls -la "$RELEASE/" || true

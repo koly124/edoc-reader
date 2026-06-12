@@ -59,8 +59,6 @@ run(
     "dmg",
     "--publish",
     "never",
-    "-c.publish=null",
-    "-c.dmg.writeUpdateInfo=false",
   ],
   { cwd: viewerDir }
 );
