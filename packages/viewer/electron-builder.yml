@@ -27,7 +27,9 @@ win:
   artifactName: ${productName}-${version}.${ext}
 mac:
   target:
-    - dmg
+    - target: dmg
+      arch:
+        - universal
   artifactName: Edoc-Viewer-${version}.${ext}
   category: public.app-category.productivity
   gatekeeperAssess: false

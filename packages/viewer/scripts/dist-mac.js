@@ -57,6 +57,7 @@ run(
     "electron-builder",
     "--mac",
     "dmg",
+    "--universal",
     "--publish",
     "never",
   ],

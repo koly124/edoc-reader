@@ -30,6 +30,7 @@ cd "$ROOT"
 npx electron-builder \
   --projectDir packages/viewer \
   --mac dmg \
+  --universal \
   --publish never
 
 echo "Release folder:"
