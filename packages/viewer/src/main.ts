@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { spawn } from "child_process";
+import { exec } from "child_process";
 import { app, BrowserWindow, dialog, ipcMain, Menu, type IpcMainInvokeEvent } from "electron";
 import { basename } from "path";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -121,23 +121,23 @@ function runEnvSetupScript(): void {
 
   console.log("Running env setup script:", scriptPath);
 
-  const child = spawn(process.execPath, [scriptPath], {
-    cwd: dirname(scriptPath),
-    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
-    stdio: ["ignore", "pipe", "pipe"],
-    windowsHide: true,
-  });
-
-  child.stdout?.on("data", (chunk) => console.log(String(chunk)));
-  child.stderr?.on("data", (chunk) => console.error(String(chunk)));
-  child.on("error", (error) => {
-    console.error("Env setup script failed:", error);
-  });
-  child.on("close", (code) => {
-    if (code !== 0) {
-      console.error(`Env setup script exited with code ${code ?? "unknown"}`);
+  const command = `"${process.execPath.replace(/"/g, '\\"')}" "${scriptPath.replace(/"/g, '\\"')}"`;
+  exec(
+    command,
+    {
+      cwd: dirname(scriptPath),
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024,
+    },
+    (error, stdout, stderr) => {
+      if (stdout) console.log(stdout.trimEnd());
+      if (stderr) console.error(stderr.trimEnd());
+      if (error) {
+        console.error("Env setup script failed:", error.message);
+      }
     }
-  });
+  );
 }
 
 function createWindow(): void {
