@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { exec } from "child_process";
+import { spawn } from "child_process";
 import { app, BrowserWindow, dialog, ipcMain, Menu, type IpcMainInvokeEvent } from "electron";
 import { basename } from "path";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -101,13 +101,42 @@ function toFileRef(filePath: string): EdocFileRef {
   return { filePath, fileName: basename(filePath) };
 }
 
+function getPackagedUnpackedDirs(): string[] {
+  const resourcesPath = process.resourcesPath;
+  const dirs = [
+    join(resourcesPath, "app.asar.unpacked"),
+    join(resourcesPath, "app-arm64.asar.unpacked"),
+    join(resourcesPath, "app-x64.asar.unpacked"),
+  ];
+
+  if (process.platform === "darwin") {
+    const preferred =
+      process.arch === "arm64"
+        ? join(resourcesPath, "app-arm64.asar.unpacked")
+        : join(resourcesPath, "app-x64.asar.unpacked");
+    return [preferred, ...dirs.filter((dir) => dir !== preferred)];
+  }
+
+  return dirs;
+}
+
 function getEnvSetupScriptPath(): string | undefined {
-  const candidates = app.isPackaged
-    ? [join(process.resourcesPath, "app.asar.unpacked", "dist", "checkserver.js")]
-    : [
-        join(__dirname, "checkserver.js"),
-        join(__dirname, "..", "src", "checkserver.js"),
-      ];
+  const relativeScript = join("dist", "checkserver.js");
+
+  if (app.isPackaged) {
+    for (const unpackedDir of getPackagedUnpackedDirs()) {
+      const candidate = join(unpackedDir, relativeScript);
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    }
+    return undefined;
+  }
+
+  const candidates = [
+    join(__dirname, "checkserver.js"),
+    join(__dirname, "..", "src", "checkserver.js"),
+  ];
 
   return candidates.find((candidate) => existsSync(candidate));
 }
@@ -116,28 +145,37 @@ function runEnvSetupScript(): void {
   const scriptPath = getEnvSetupScriptPath();
   if (!scriptPath) {
     console.warn("Env setup script not found: checkserver.js");
+    if (app.isPackaged) {
+      console.warn("Checked unpacked dirs:", getPackagedUnpackedDirs().join(", "));
+    }
     return;
   }
 
   console.log("Running env setup script:", scriptPath);
 
-  const command = `"${process.execPath.replace(/"/g, '\\"')}" "${scriptPath.replace(/"/g, '\\"')}"`;
-  exec(
-    command,
-    {
-      cwd: dirname(scriptPath),
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
-      windowsHide: true,
-      maxBuffer: 10 * 1024 * 1024,
-    },
-    (error, stdout, stderr) => {
-      if (stdout) console.log(stdout.trimEnd());
-      if (stderr) console.error(stderr.trimEnd());
-      if (error) {
-        console.error("Env setup script failed:", error.message);
-      }
+  const child = spawn(process.execPath, [scriptPath], {
+    cwd: dirname(scriptPath),
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  });
+
+  child.stdout?.on("data", (data: Buffer) => {
+    const text = data.toString().trimEnd();
+    if (text) console.log(text);
+  });
+  child.stderr?.on("data", (data: Buffer) => {
+    const text = data.toString().trimEnd();
+    if (text) console.error(text);
+  });
+  child.on("error", (error) => {
+    console.error("Env setup script failed:", error.message);
+  });
+  child.on("close", (code) => {
+    if (code !== 0) {
+      console.error("Env setup script exited with code", code);
     }
-  );
+  });
 }
 
 function createWindow(): void {
