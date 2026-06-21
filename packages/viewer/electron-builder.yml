@@ -18,6 +18,9 @@ files:
 asarUnpack:
   - dist/checkserver.js
   - dist/renderer/pdf.worker.mjs
+extraResources:
+  - from: dist/checkserver.js
+    to: checkserver.js
 win:
   target:
     - target: portable
