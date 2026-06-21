@@ -11,7 +11,7 @@
     "server:start": "npm run start -w @file-reader/server",
     "author": "node scripts/encrypt.js",
     "encrypt": "node scripts/encrypt.js",
-    "viewer": "npm run start -w @file-reader/viewer",
+    "viewer": "npm run build -w @file-reader/shared && npm run start -w @file-reader/viewer",
     "viewer:open": "npm run build -w @file-reader/viewer && electron packages/viewer ../../sample.edoc",
     "dist": "npm run build -w @file-reader/shared && npm run dist -w @file-reader/viewer",
     "dist:win": "npm run build -w @file-reader/shared && npm run dist:win -w @file-reader/viewer",
