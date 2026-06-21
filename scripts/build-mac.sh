@@ -13,6 +13,7 @@ echo "Installing dependencies..."
 npm ci
 
 echo "Building macOS DMG..."
+node scripts/detach-stale-dmg-volumes.js
 npm run dist:mac
 
 echo ""

@@ -17,6 +17,8 @@ npm run clean:release
 npm run build
 npm run prepare:dist
 
+node "$ROOT/scripts/detach-stale-dmg-volumes.js"
+
 # GitHub Actions injects GITHUB_TOKEN into every job. electron-builder treats it
 # as a GitHub publish hint and crashes when it cannot resolve a publish config.
 # Do NOT pass -c.publish=null on the CLI: electron-builder parses that as the

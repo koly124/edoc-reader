@@ -56,6 +56,8 @@ npmRun("clean:release", viewerDir);
 npmRun("build", viewerDir);
 npmRun("prepare:dist", viewerDir);
 
+run("node", [path.join(rootDir, "scripts", "detach-stale-dmg-volumes.js")], { cwd: rootDir });
+
 const builderArgs = [
   "electron-builder",
   "--projectDir",

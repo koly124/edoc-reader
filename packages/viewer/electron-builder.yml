@@ -9,6 +9,7 @@ publish: null
 generateUpdatesFilesForAllChannels: false
 dmg:
   writeUpdateInfo: false
+  title: EdocViewer
 directories:
   output: release
   buildResources: build
