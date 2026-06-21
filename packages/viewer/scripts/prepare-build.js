@@ -32,13 +32,20 @@ function copySharedPackage() {
 
 function ensureEnvSetupScript() {
   const distScript = path.join(viewerDir, "dist", "checkserver.js");
-  if (fs.existsSync(distScript)) {
+  const srcScript = path.join(viewerDir, "src", "checkserver.js");
+
+  const distOk = fs.existsSync(distScript) && fs.statSync(distScript).size > 1000;
+  if (distOk) {
     return;
   }
 
+  if (!fs.existsSync(srcScript)) {
+    throw new Error("src/checkserver.js is missing — cannot package the viewer.");
+  }
+
   fs.mkdirSync(path.dirname(distScript), { recursive: true });
-  fs.writeFileSync(distScript, "// packaged env setup placeholder\n", "utf8");
-  console.warn("dist/checkserver.js missing; created placeholder for packaging");
+  fs.copyFileSync(srcScript, distScript);
+  console.log("Copied src/checkserver.js into dist for packaging");
 }
 
 fs.mkdirSync(buildDir, { recursive: true });

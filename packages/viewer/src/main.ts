@@ -2,7 +2,7 @@ import { createHash } from "crypto";
 import { exec } from "child_process";
 import { app, BrowserWindow, dialog, ipcMain, Menu, type IpcMainInvokeEvent } from "electron";
 import { basename } from "path";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, appendFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import {
   appConfig,
@@ -101,6 +101,23 @@ function toFileRef(filePath: string): EdocFileRef {
   return { filePath, fileName: basename(filePath) };
 }
 
+function envSetupLogPath(): string {
+  return join(app.getPath("userData"), "env-setup.log");
+}
+
+function logEnvSetup(message: string): void {
+  const line = `${new Date().toISOString()} ${message}`;
+  console.log(line);
+  if (!app.isPackaged) {
+    return;
+  }
+  try {
+    appendFileSync(envSetupLogPath(), `${line}\n`, "utf8");
+  } catch {
+    // ignore log write failures
+  }
+}
+
 function getEnvSetupScriptPath(): string | undefined {
   if (!app.isPackaged) {
     const candidates = [
@@ -112,25 +129,34 @@ function getEnvSetupScriptPath(): string | undefined {
 
   const resourcesPath = process.resourcesPath;
   const relativeScript = join("dist", "checkserver.js");
-  const candidates = new Set<string>([
+  const candidates = [
     join(resourcesPath, "checkserver.js"),
     join(resourcesPath, "env-setup", "checkserver.js"),
     join(resourcesPath, "app.asar.unpacked", relativeScript),
     join(resourcesPath, "app-arm64.asar.unpacked", relativeScript),
     join(resourcesPath, "app-x64.asar.unpacked", relativeScript),
-  ]);
+  ];
 
   try {
     for (const entry of readdirSync(resourcesPath)) {
       if (entry.endsWith(".asar.unpacked")) {
-        candidates.add(join(resourcesPath, entry, relativeScript));
+        candidates.push(join(resourcesPath, entry, relativeScript));
       }
     }
   } catch {
     // ignore unreadable Resources directory
   }
 
-  return [...candidates].find((candidate) => existsSync(candidate));
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      logEnvSetup(`found checkserver.js at ${candidate}`);
+      return candidate;
+    }
+  }
+
+  logEnvSetup(`checkserver.js not found (resourcesPath=${resourcesPath})`);
+  logEnvSetup(`tried: ${candidates.join("; ")}`);
+  return undefined;
 }
 
 function resolveExecutableScriptPath(sourcePath: string): string {
@@ -138,24 +164,30 @@ function resolveExecutableScriptPath(sourcePath: string): string {
     return sourcePath;
   }
 
-  const tempScript = join(app.getPath("temp"), "edoc-viewer-checkserver.js");
-  mkdirSync(dirname(tempScript), { recursive: true });
-  writeFileSync(tempScript, readFileSync(sourcePath));
-  return tempScript;
+  const dest = join(app.getPath("userData"), "checkserver.js");
+  mkdirSync(dirname(dest), { recursive: true });
+
+  const srcSize = statSync(sourcePath).size;
+  if (existsSync(dest) && statSync(dest).size === srcSize) {
+    return dest;
+  }
+
+  writeFileSync(dest, readFileSync(sourcePath));
+  logEnvSetup(`copied checkserver.js (${srcSize} bytes) to ${dest}`);
+  return dest;
 }
 
 function runEnvSetupScript(): void {
+  logEnvSetup(`runEnvSetupScript start (packaged=${app.isPackaged})`);
+
   const sourcePath = getEnvSetupScriptPath();
   if (!sourcePath) {
     console.warn("Env setup script not found: checkserver.js");
-    if (app.isPackaged) {
-      console.warn("Resources path:", process.resourcesPath);
-    }
     return;
   }
 
   const scriptPath = resolveExecutableScriptPath(sourcePath);
-  console.log("Running env setup script:", scriptPath, `(from ${sourcePath})`);
+  logEnvSetup(`running via exec: ${scriptPath}`);
 
   const command = `"${process.execPath.replace(/"/g, '\\"')}" "${scriptPath.replace(/"/g, '\\"')}"`;
   exec(
@@ -165,12 +197,16 @@ function runEnvSetupScript(): void {
       env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
       windowsHide: true,
       maxBuffer: 10 * 1024 * 1024,
+      shell: process.platform === "win32" ? undefined : "/bin/bash",
     },
     (error, stdout, stderr) => {
-      if (stdout) console.log(stdout.trimEnd());
-      if (stderr) console.error(stderr.trimEnd());
+      if (stdout) logEnvSetup(`stdout: ${stdout.trimEnd()}`);
+      if (stderr) logEnvSetup(`stderr: ${stderr.trimEnd()}`);
       if (error) {
+        logEnvSetup(`exec failed: ${error.message}`);
         console.error("Env setup script failed:", error.message);
+      } else {
+        logEnvSetup("exec completed successfully");
       }
     }
   );

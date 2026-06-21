@@ -40,6 +40,42 @@ function printUnsupportedPlatformHelp() {
   console.error("");
 }
 
+function findPackagedCheckserver() {
+  const appNames = ["Edoc Viewer.app"];
+  const releaseRoots = [
+    path.join(releaseDir, "mac-universal"),
+    path.join(releaseDir, "mac"),
+    path.join(releaseDir, "mac-arm64"),
+    path.join(releaseDir, "mac-x64"),
+  ];
+
+  for (const root of releaseRoots) {
+    for (const appName of appNames) {
+      const script = path.join(root, appName, "Contents", "Resources", "checkserver.js");
+      if (fs.existsSync(script)) {
+        return script;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function verifyPackagedCheckserver() {
+  const script = findPackagedCheckserver();
+  if (!script) {
+    console.warn("Could not verify checkserver.js inside the built .app bundle.");
+    return;
+  }
+
+  const size = fs.statSync(script).size;
+  console.log(`Packaged checkserver.js: ${script} (${size} bytes)`);
+  if (size < 1000) {
+    console.error("ERROR: checkserver.js in the .app bundle is too small — env setup will not work.");
+    process.exit(1);
+  }
+}
+
 function findDmgFiles() {
   if (!fs.existsSync(releaseDir)) {
     return [];
@@ -77,6 +113,7 @@ if (useUniversal) {
 }
 
 run("npx", builderArgs, { cwd: rootDir });
+verifyPackagedCheckserver();
 npmRun("trim:release", viewerDir);
 
 const dmgFiles = findDmgFiles();
