@@ -11,9 +11,9 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "npm run build -w @file-reader/shared && tsc && node scripts/copy-renderer.js && node scripts/bundle-renderer.js",
-    "start": "npm run build && npx electron .",
-    "open": "npx electron .",
-    "dev": "npm run build && npx electron .",
+    "start": "node ../../scripts/ensure-electron.js && npm run build && npx electron .",
+    "open": "node ../../scripts/ensure-electron.js && npx electron .",
+    "dev": "node ../../scripts/ensure-electron.js && npm run build && npx electron .",
     "prepare:dist": "node scripts/prepare-build.js",
     "clean:release": "node scripts/clean-release.js",
     "trim:release": "node scripts/trim-release.js",

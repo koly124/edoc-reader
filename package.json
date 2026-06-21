@@ -5,6 +5,7 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "node scripts/ensure-electron.js",
     "build": "npm run build -w @file-reader/shared && npm run build -w @file-reader/server && npm run build -w @file-reader/author && npm run build -w @file-reader/viewer",
     "build:server": "npm run build -w @file-reader/server",
     "server": "npm run dev -w @file-reader/server",
@@ -21,6 +22,9 @@
     "pack": "npm run build -w @file-reader/shared && npm run pack -w @file-reader/viewer",
     "sample:pdf": "node scripts/create-sample-pdf.js",
     "demo": "node scripts/demo.js"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "axios": "^1.17.0",
