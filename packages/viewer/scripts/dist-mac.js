@@ -3,12 +3,23 @@ const fs = require("fs");
 const path = require("path");
 
 const viewerDir = path.join(__dirname, "..");
+const rootDir = path.join(viewerDir, "..", "..");
 const releaseDir = path.join(viewerDir, "release");
+
+function builderEnv() {
+  const env = { ...process.env };
+  delete env.GH_TOKEN;
+  delete env.GITHUB_TOKEN;
+  env.CSC_IDENTITY_AUTO_DISCOVERY = "false";
+  env.EDOC_MAC_BUILD = "1";
+  return env;
+}
 
 function run(command, args = [], options = {}) {
   const result = spawnSync(command, args, {
     stdio: "inherit",
     shell: true,
+    env: builderEnv(),
     ...options,
   });
   if ((result.status ?? 1) !== 0) {
@@ -41,28 +52,29 @@ if (process.platform !== "darwin") {
   process.exit(1);
 }
 
-process.env.EDOC_MAC_BUILD = "1";
-process.env.CSC_IDENTITY_AUTO_DISCOVERY = "false";
-delete process.env.GH_TOKEN;
-delete process.env.GITHUB_TOKEN;
-
 npmRun("clean:release", viewerDir);
 npmRun("build", viewerDir);
 npmRun("prepare:dist", viewerDir);
-delete process.env.GH_TOKEN;
-delete process.env.GITHUB_TOKEN;
-run(
-  "npx",
-  [
-    "electron-builder",
-    "--mac",
-    "dmg",
-    "--universal",
-    "--publish",
-    "never",
-  ],
-  { cwd: viewerDir }
-);
+
+const builderArgs = [
+  "electron-builder",
+  "--projectDir",
+  "packages/viewer",
+  "--mac",
+  "dmg",
+  "--publish",
+  "never",
+];
+
+const useUniversal = process.env.EDOC_MAC_UNIVERSAL !== "0";
+if (useUniversal) {
+  builderArgs.push("--universal");
+  console.log("Building universal DMG (arm64 + x64). Set EDOC_MAC_UNIVERSAL=0 for native arch only.");
+} else {
+  console.log("Building DMG for this Mac's CPU architecture only.");
+}
+
+run("npx", builderArgs, { cwd: rootDir });
 npmRun("trim:release", viewerDir);
 
 const dmgFiles = findDmgFiles();
