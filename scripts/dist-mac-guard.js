@@ -10,7 +10,9 @@ function run(command, args) {
     stdio: "inherit",
     shell: true,
   });
-  process.exit(result.status ?? 1);
+  if ((result.status ?? 1) !== 0) {
+    process.exit(result.status ?? 1);
+  }
 }
 
 if (process.platform !== "darwin") {

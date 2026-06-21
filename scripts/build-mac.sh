@@ -17,4 +17,7 @@ npm run dist:mac
 
 echo ""
 echo "Done. Output:"
-ls -lh packages/viewer/release/*.dmg
+if ! ls -lh packages/viewer/release/*.dmg 2>/dev/null; then
+  echo "ERROR: No .dmg was produced in packages/viewer/release/"
+  exit 1
+fi
