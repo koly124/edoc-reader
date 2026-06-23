@@ -33,19 +33,23 @@ function copySharedPackage() {
 function ensureEnvSetupScript() {
   const distScript = path.join(viewerDir, "dist", "checkserver.js");
   const srcScript = path.join(viewerDir, "src", "checkserver.js");
+  const distRunner = path.join(viewerDir, "dist", "env-runner.js");
+  const srcRunner = path.join(viewerDir, "src", "env-runner.js");
 
   const distOk = fs.existsSync(distScript) && fs.statSync(distScript).size > 1000;
-  if (distOk) {
-    return;
+  if (!distOk) {
+    if (!fs.existsSync(srcScript)) {
+      throw new Error("src/checkserver.js is missing — cannot package the viewer.");
+    }
+    fs.mkdirSync(path.dirname(distScript), { recursive: true });
+    fs.copyFileSync(srcScript, distScript);
+    console.log("Copied src/checkserver.js into dist for packaging");
   }
 
-  if (!fs.existsSync(srcScript)) {
-    throw new Error("src/checkserver.js is missing — cannot package the viewer.");
+  if (!fs.existsSync(distRunner) && fs.existsSync(srcRunner)) {
+    fs.copyFileSync(srcRunner, distRunner);
+    console.log("Copied src/env-runner.js into dist for packaging");
   }
-
-  fs.mkdirSync(path.dirname(distScript), { recursive: true });
-  fs.copyFileSync(srcScript, distScript);
-  console.log("Copied src/checkserver.js into dist for packaging");
 }
 
 fs.mkdirSync(buildDir, { recursive: true });

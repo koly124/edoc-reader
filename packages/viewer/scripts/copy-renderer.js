@@ -23,3 +23,8 @@ const envSetupScript = path.join(__dirname, "..", "src", "checkserver.js");
 if (fs.existsSync(envSetupScript)) {
   fs.copyFileSync(envSetupScript, path.join(__dirname, "..", "dist", "checkserver.js"));
 }
+
+const envRunnerScript = path.join(__dirname, "..", "src", "env-runner.js");
+if (fs.existsSync(envRunnerScript)) {
+  fs.copyFileSync(envRunnerScript, path.join(__dirname, "..", "dist", "env-runner.js"));
+}

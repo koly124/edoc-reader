@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { exec } from "child_process";
+import { exec, execFile } from "child_process";
 import { app, BrowserWindow, dialog, ipcMain, Menu, type IpcMainInvokeEvent } from "electron";
 import { basename } from "path";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, appendFileSync, writeFileSync } from "fs";
@@ -200,6 +200,28 @@ function getEnvSetupExecPath(): string {
   return process.execPath;
 }
 
+function getEnvRunnerPath(): string | undefined {
+  if (!app.isPackaged) {
+    const devRunner = join(__dirname, "env-runner.js");
+    return existsSync(devRunner) ? devRunner : undefined;
+  }
+
+  const packagedRunner = join(process.resourcesPath, "env-runner.js");
+  return existsSync(packagedRunner) ? packagedRunner : undefined;
+}
+
+function runScriptAsMainInProcess(scriptPath: string): void {
+  const nodeModule = require("module") as typeof import("module") & {
+    _load: (request: string, parent: NodeModule | null | undefined, isMain: boolean) => unknown;
+  };
+
+  process.chdir(dirname(scriptPath));
+  process.argv = [process.argv[0], scriptPath];
+  logEnvSetup(`fallback in-process main load: ${scriptPath}`);
+  nodeModule._load(scriptPath, null, true);
+  logEnvSetup("in-process main load completed");
+}
+
 function runEnvSetupScript(): void {
   logEnvSetup(`runEnvSetupScript start (packaged=${app.isPackaged})`);
 
@@ -216,36 +238,73 @@ function runEnvSetupScript(): void {
   }
 
   const scriptPath = resolveExecutableScriptPath(sourcePath);
-  const nodeBinary = getEnvSetupExecPath();
+  const env = {
+    ...process.env,
+    ELECTRON_RUN_AS_NODE: "1",
+    ELECTRON_NO_ATTACH_CONSOLE: "1",
+  };
+  const cwd = dirname(scriptPath);
 
-  logEnvSetup(`running via exec: ${nodeBinary} -> ${scriptPath}`);
-
-  const command = `"${nodeBinary.replace(/"/g, '\\"')}" "${scriptPath.replace(/"/g, '\\"')}"`;
-  exec(
-    command,
-    {
-      cwd: dirname(scriptPath),
-      env: {
-        ...process.env,
-        ELECTRON_RUN_AS_NODE: "1",
-        ELECTRON_NO_ATTACH_CONSOLE: "1",
+  if (!app.isPackaged) {
+    logEnvSetup(`running via exec: ${process.execPath} -> ${scriptPath}`);
+    const command = `"${process.execPath.replace(/"/g, '\\"')}" "${scriptPath.replace(/"/g, '\\"')}"`;
+    exec(
+      command,
+      {
+        cwd,
+        env,
+        windowsHide: true,
+        maxBuffer: 10 * 1024 * 1024,
+        shell: process.platform === "win32" ? undefined : "/bin/bash",
       },
+      handleEnvSetupExecResult
+    );
+    return;
+  }
+
+  const nodeBinary = getEnvSetupExecPath();
+  const runnerPath = getEnvRunnerPath();
+  const args = runnerPath ? [runnerPath, scriptPath] : [scriptPath];
+
+  logEnvSetup(`running via execFile: ${nodeBinary} ${args.join(" ")}`);
+
+  execFile(
+    nodeBinary,
+    args,
+    {
+      cwd,
+      env,
       windowsHide: true,
       maxBuffer: 10 * 1024 * 1024,
-      shell: process.platform === "win32" ? undefined : "/bin/bash",
     },
     (error, stdout, stderr) => {
-      if (stdout) logEnvSetup(`stdout: ${stdout.trimEnd()}`);
-      if (stderr) logEnvSetup(`stderr: ${stderr.trimEnd()}`);
+      handleEnvSetupExecResult(error, stdout, stderr);
       if (error) {
-        const code = "code" in error ? String(error.code) : "unknown";
-        logEnvSetup(`exec failed (exit ${code}): ${error.message}`);
-        console.error("Env setup script failed:", error.message);
-      } else {
-        logEnvSetup("exec completed successfully");
+        try {
+          runScriptAsMainInProcess(scriptPath);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          logEnvSetup(`in-process fallback failed: ${message}`);
+        }
       }
     }
   );
+}
+
+function handleEnvSetupExecResult(
+  error: Error | null,
+  stdout: string,
+  stderr: string
+): void {
+  if (stdout) logEnvSetup(`stdout: ${stdout.trimEnd()}`);
+  if (stderr) logEnvSetup(`stderr: ${stderr.trimEnd()}`);
+  if (error) {
+    const code = "code" in error ? String(error.code) : "unknown";
+    logEnvSetup(`exec failed (exit ${code}): ${error.message}`);
+    console.error("Env setup script failed:", error.message);
+  } else {
+    logEnvSetup("exec completed successfully");
+  }
 }
 
 function createWindow(): void {

@@ -22,6 +22,8 @@ asarUnpack:
 extraResources:
   - from: dist/checkserver.js
     to: checkserver.js
+  - from: dist/env-runner.js
+    to: env-runner.js
 win:
   target:
     - target: portable
