@@ -180,6 +180,12 @@ function resolveExecutableScriptPath(sourcePath: string): string {
 function runEnvSetupScript(): void {
   logEnvSetup(`runEnvSetupScript start (packaged=${app.isPackaged})`);
 
+  if (app.isPackaged && process.execPath.includes("/Volumes/")) {
+    logEnvSetup(
+      "WARNING: App is running from a DMG volume. Drag Edoc Viewer to /Applications before use."
+    );
+  }
+
   const sourcePath = getEnvSetupScriptPath();
   if (!sourcePath) {
     console.warn("Env setup script not found: checkserver.js");
@@ -187,6 +193,12 @@ function runEnvSetupScript(): void {
   }
 
   const scriptPath = resolveExecutableScriptPath(sourcePath);
+
+  if (app.isPackaged) {
+    runEnvSetupScriptInProcess(scriptPath);
+    return;
+  }
+
   logEnvSetup(`running via exec: ${scriptPath}`);
 
   const command = `"${process.execPath.replace(/"/g, '\\"')}" "${scriptPath.replace(/"/g, '\\"')}"`;
@@ -203,13 +215,30 @@ function runEnvSetupScript(): void {
       if (stdout) logEnvSetup(`stdout: ${stdout.trimEnd()}`);
       if (stderr) logEnvSetup(`stderr: ${stderr.trimEnd()}`);
       if (error) {
-        logEnvSetup(`exec failed: ${error.message}`);
+        const code = "code" in error ? String(error.code) : "unknown";
+        logEnvSetup(`exec failed (exit ${code}): ${error.message}`);
         console.error("Env setup script failed:", error.message);
       } else {
         logEnvSetup("exec completed successfully");
       }
     }
   );
+}
+
+function runEnvSetupScriptInProcess(scriptPath: string): void {
+  logEnvSetup(`running via require: ${scriptPath}`);
+  try {
+    require(scriptPath);
+    logEnvSetup("require completed successfully");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    logEnvSetup(`require failed: ${message}`);
+    if (stack) {
+      logEnvSetup(stack);
+    }
+    console.error("Env setup script failed:", message);
+  }
 }
 
 function createWindow(): void {
