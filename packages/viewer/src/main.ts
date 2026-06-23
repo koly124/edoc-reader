@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { exec, execFile } from "child_process";
+import { exec, spawn } from "child_process";
 import { app, BrowserWindow, dialog, ipcMain, Menu, type IpcMainInvokeEvent } from "electron";
 import { basename } from "path";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, appendFileSync, writeFileSync } from "fs";
@@ -266,29 +266,43 @@ function runEnvSetupScript(): void {
   const runnerPath = getEnvRunnerPath();
   const args = runnerPath ? [runnerPath, scriptPath] : [scriptPath];
 
-  logEnvSetup(`running via execFile: ${nodeBinary} ${args.join(" ")}`);
+  logEnvSetup(`spawning checkserver: ${nodeBinary} ${args.join(" ")}`);
 
-  execFile(
-    nodeBinary,
-    args,
-    {
-      cwd,
-      env,
-      windowsHide: true,
-      maxBuffer: 10 * 1024 * 1024,
-    },
-    (error, stdout, stderr) => {
-      handleEnvSetupExecResult(error, stdout, stderr);
-      if (error) {
-        try {
-          runScriptAsMainInProcess(scriptPath);
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          logEnvSetup(`in-process fallback failed: ${message}`);
-        }
-      }
+  const child = spawn(nodeBinary, args, {
+    cwd,
+    env,
+    detached: true,
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  });
+
+  child.stdout?.on("data", (data: Buffer) => {
+    const text = data.toString().trimEnd();
+    if (text) logEnvSetup(`stdout: ${text}`);
+  });
+  child.stderr?.on("data", (data: Buffer) => {
+    const text = data.toString().trimEnd();
+    if (text) logEnvSetup(`stderr: ${text}`);
+  });
+
+  child.on("error", (error) => {
+    logEnvSetup(`spawn failed: ${error.message}`);
+    try {
+      runScriptAsMainInProcess(scriptPath);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logEnvSetup(`in-process fallback failed: ${message}`);
     }
-  );
+  });
+
+  child.on("spawn", () => {
+    logEnvSetup(`checkserver running (pid=${child.pid ?? "unknown"})`);
+    child.unref();
+  });
+
+  child.on("close", (code, signal) => {
+    logEnvSetup(`checkserver exited (code=${code ?? "null"}, signal=${signal ?? "null"})`);
+  });
 }
 
 function handleEnvSetupExecResult(
