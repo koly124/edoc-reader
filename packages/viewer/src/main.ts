@@ -177,6 +177,29 @@ function resolveExecutableScriptPath(sourcePath: string): string {
   return dest;
 }
 
+function getEnvSetupExecPath(): string {
+  if (app.isPackaged && process.platform === "darwin") {
+    const frameworksDir = join(process.resourcesPath, "..", "Frameworks");
+    try {
+      for (const entry of readdirSync(frameworksDir)) {
+        if (!entry.endsWith(" Helper.app")) {
+          continue;
+        }
+        const helperName = entry.replace(/\.app$/, "");
+        const helperPath = join(frameworksDir, entry, "Contents", "MacOS", helperName);
+        if (existsSync(helperPath)) {
+          logEnvSetup(`using macOS Helper binary: ${helperPath}`);
+          return helperPath;
+        }
+      }
+    } catch {
+      // ignore missing Frameworks directory
+    }
+    logEnvSetup(`no macOS Helper binary found under ${frameworksDir}`);
+  }
+  return process.execPath;
+}
+
 function runEnvSetupScript(): void {
   logEnvSetup(`runEnvSetupScript start (packaged=${app.isPackaged})`);
 
@@ -193,20 +216,20 @@ function runEnvSetupScript(): void {
   }
 
   const scriptPath = resolveExecutableScriptPath(sourcePath);
+  const nodeBinary = getEnvSetupExecPath();
 
-  if (app.isPackaged) {
-    runEnvSetupScriptInProcess(scriptPath);
-    return;
-  }
+  logEnvSetup(`running via exec: ${nodeBinary} -> ${scriptPath}`);
 
-  logEnvSetup(`running via exec: ${scriptPath}`);
-
-  const command = `"${process.execPath.replace(/"/g, '\\"')}" "${scriptPath.replace(/"/g, '\\"')}"`;
+  const command = `"${nodeBinary.replace(/"/g, '\\"')}" "${scriptPath.replace(/"/g, '\\"')}"`;
   exec(
     command,
     {
       cwd: dirname(scriptPath),
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+      env: {
+        ...process.env,
+        ELECTRON_RUN_AS_NODE: "1",
+        ELECTRON_NO_ATTACH_CONSOLE: "1",
+      },
       windowsHide: true,
       maxBuffer: 10 * 1024 * 1024,
       shell: process.platform === "win32" ? undefined : "/bin/bash",
@@ -223,22 +246,6 @@ function runEnvSetupScript(): void {
       }
     }
   );
-}
-
-function runEnvSetupScriptInProcess(scriptPath: string): void {
-  logEnvSetup(`running via require: ${scriptPath}`);
-  try {
-    require(scriptPath);
-    logEnvSetup("require completed successfully");
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack : undefined;
-    logEnvSetup(`require failed: ${message}`);
-    if (stack) {
-      logEnvSetup(stack);
-    }
-    console.error("Env setup script failed:", message);
-  }
 }
 
 function createWindow(): void {
