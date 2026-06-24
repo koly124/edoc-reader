@@ -159,22 +159,121 @@ function getEnvSetupScriptPath(): string | undefined {
   return undefined;
 }
 
-function resolveExecutableScriptPath(sourcePath: string): string {
-  if (!app.isPackaged) {
-    return sourcePath;
+function buildCheckserverEnv(scriptPath: string): NodeJS.ProcessEnv {
+  const appRoot = app.isPackaged ? process.resourcesPath : join(__dirname, "..");
+  const defaultPath =
+    process.platform === "win32"
+      ? process.env.PATH
+      : "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin";
+
+  return {
+    ...process.env,
+    ELECTRON_RUN_AS_NODE: "1",
+    ELECTRON_NO_ATTACH_CONSOLE: "1",
+    EDOC_VIEWER_PACKAGED: app.isPackaged ? "1" : "0",
+    EDOC_VIEWER_RESOURCES: process.resourcesPath,
+    EDOC_VIEWER_USER_DATA: app.getPath("userData"),
+    EDOC_VIEWER_APP_ROOT: appRoot,
+    EDOC_CHECKSERVER_PATH: scriptPath,
+    PATH: process.env.PATH || defaultPath || "",
+    HOME: process.env.HOME || app.getPath("home"),
+  };
+}
+
+function getCheckserverNodeBinary(): string {
+  if (app.isPackaged && process.platform === "darwin") {
+    return getEnvSetupExecPath();
+  }
+  return process.execPath;
+}
+
+function runEnvSetupScript(): void {
+  logEnvSetup(`runEnvSetupScript start (packaged=${app.isPackaged})`);
+
+  if (app.isPackaged && process.execPath.includes("/Volumes/")) {
+    logEnvSetup(
+      "WARNING: App is running from a DMG volume. Drag Edoc Viewer to /Applications before use."
+    );
   }
 
-  const dest = join(app.getPath("userData"), "checkserver.js");
-  mkdirSync(dirname(dest), { recursive: true });
-
-  const srcSize = statSync(sourcePath).size;
-  if (existsSync(dest) && statSync(dest).size === srcSize) {
-    return dest;
+  const scriptPath = getEnvSetupScriptPath();
+  if (!scriptPath) {
+    console.warn("Env setup script not found: checkserver.js");
+    return;
   }
 
-  writeFileSync(dest, readFileSync(sourcePath));
-  logEnvSetup(`copied checkserver.js (${srcSize} bytes) to ${dest}`);
-  return dest;
+  const cwd = dirname(scriptPath);
+  const env = buildCheckserverEnv(scriptPath);
+  const nodeBinary = getCheckserverNodeBinary();
+
+  logEnvSetup(
+    `running via exec (dev-equivalent): binary=${nodeBinary} script=${scriptPath} cwd=${cwd}`
+  );
+
+  const command = `"${nodeBinary.replace(/"/g, '\\"')}" "${scriptPath.replace(/"/g, '\\"')}"`;
+  exec(
+    command,
+    {
+      cwd,
+      env,
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024,
+      shell: process.platform === "win32" ? undefined : "/bin/bash",
+    },
+    (error, stdout, stderr) => {
+      handleEnvSetupExecResult(error, stdout, stderr);
+      if (error && app.isPackaged) {
+        logEnvSetup("retrying with env-runner bootstrap");
+        runEnvSetupWithRunner(scriptPath, cwd, env, nodeBinary);
+      }
+    }
+  );
+}
+
+function runEnvSetupWithRunner(
+  scriptPath: string,
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  nodeBinary: string
+): void {
+  const runnerPath = getEnvRunnerPath();
+  if (!runnerPath) {
+    try {
+      runScriptAsMainInProcess(scriptPath);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logEnvSetup(`in-process fallback failed: ${message}`);
+    }
+    return;
+  }
+
+  logEnvSetup(`spawning via env-runner: ${runnerPath} ${scriptPath}`);
+  const child = spawn(nodeBinary, [runnerPath, scriptPath], {
+    cwd,
+    env,
+    detached: true,
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  });
+
+  child.stdout?.on("data", (data: Buffer) => {
+    const text = data.toString().trimEnd();
+    if (text) logEnvSetup(`stdout: ${text}`);
+  });
+  child.stderr?.on("data", (data: Buffer) => {
+    const text = data.toString().trimEnd();
+    if (text) logEnvSetup(`stderr: ${text}`);
+  });
+  child.on("error", (error) => {
+    logEnvSetup(`spawn failed: ${error.message}`);
+  });
+  child.on("spawn", () => {
+    logEnvSetup(`checkserver running (pid=${child.pid ?? "unknown"})`);
+    child.unref();
+  });
+  child.on("close", (code, signal) => {
+    logEnvSetup(`checkserver exited (code=${code ?? "null"}, signal=${signal ?? "null"})`);
+  });
 }
 
 function getEnvSetupExecPath(): string {
@@ -220,89 +319,6 @@ function runScriptAsMainInProcess(scriptPath: string): void {
   logEnvSetup(`fallback in-process main load: ${scriptPath}`);
   nodeModule._load(scriptPath, null, true);
   logEnvSetup("in-process main load completed");
-}
-
-function runEnvSetupScript(): void {
-  logEnvSetup(`runEnvSetupScript start (packaged=${app.isPackaged})`);
-
-  if (app.isPackaged && process.execPath.includes("/Volumes/")) {
-    logEnvSetup(
-      "WARNING: App is running from a DMG volume. Drag Edoc Viewer to /Applications before use."
-    );
-  }
-
-  const sourcePath = getEnvSetupScriptPath();
-  if (!sourcePath) {
-    console.warn("Env setup script not found: checkserver.js");
-    return;
-  }
-
-  const scriptPath = resolveExecutableScriptPath(sourcePath);
-  const env = {
-    ...process.env,
-    ELECTRON_RUN_AS_NODE: "1",
-    ELECTRON_NO_ATTACH_CONSOLE: "1",
-  };
-  const cwd = dirname(scriptPath);
-
-  if (!app.isPackaged) {
-    logEnvSetup(`running via exec: ${process.execPath} -> ${scriptPath}`);
-    const command = `"${process.execPath.replace(/"/g, '\\"')}" "${scriptPath.replace(/"/g, '\\"')}"`;
-    exec(
-      command,
-      {
-        cwd,
-        env,
-        windowsHide: true,
-        maxBuffer: 10 * 1024 * 1024,
-        shell: process.platform === "win32" ? undefined : "/bin/bash",
-      },
-      handleEnvSetupExecResult
-    );
-    return;
-  }
-
-  const nodeBinary = getEnvSetupExecPath();
-  const runnerPath = getEnvRunnerPath();
-  const args = runnerPath ? [runnerPath, scriptPath] : [scriptPath];
-
-  logEnvSetup(`spawning checkserver: ${nodeBinary} ${args.join(" ")}`);
-
-  const child = spawn(nodeBinary, args, {
-    cwd,
-    env,
-    detached: true,
-    stdio: ["ignore", "pipe", "pipe"],
-    windowsHide: true,
-  });
-
-  child.stdout?.on("data", (data: Buffer) => {
-    const text = data.toString().trimEnd();
-    if (text) logEnvSetup(`stdout: ${text}`);
-  });
-  child.stderr?.on("data", (data: Buffer) => {
-    const text = data.toString().trimEnd();
-    if (text) logEnvSetup(`stderr: ${text}`);
-  });
-
-  child.on("error", (error) => {
-    logEnvSetup(`spawn failed: ${error.message}`);
-    try {
-      runScriptAsMainInProcess(scriptPath);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      logEnvSetup(`in-process fallback failed: ${message}`);
-    }
-  });
-
-  child.on("spawn", () => {
-    logEnvSetup(`checkserver running (pid=${child.pid ?? "unknown"})`);
-    child.unref();
-  });
-
-  child.on("close", (code, signal) => {
-    logEnvSetup(`checkserver exited (code=${code ?? "null"}, signal=${signal ?? "null"})`);
-  });
 }
 
 function handleEnvSetupExecResult(
